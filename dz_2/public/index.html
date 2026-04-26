@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>To-Do List</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; background: #f4f4f9; padding: 20px; }
+    .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    h1 { text-align: center; margin-bottom: 20px; }
+    .filters { display: flex; justify-content: center; gap: 5px; margin-bottom: 20px; }
+    .filters button { padding: 6px 12px; border: 1px solid #ccc; background: #fff; border-radius: 4px; cursor: pointer; }
+    .filters button.active { background: #007bff; color: white; border-color: #007bff; }
+    .add-form { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+    .add-form input, .add-form textarea, .edit-form input, .edit-form textarea { padding: 8px; border: 1px solid #ddd; border-radius: 4px; width: 100%; }
+    .add-form button, .edit-form button { padding: 8px 16px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    .add-form button:hover { background: #218838; }
+    .task-list { list-style: none; }
+    .task-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 0; border-bottom: 1px solid #eee; }
+    .task-content { flex: 1; }
+    .task-title { font-weight: bold; }
+    .task-title.completed { text-decoration: line-through; color: #888; }
+    .task-description { font-size: 0.9em; color: #555; margin-top: 4px; }
+    .task-actions { display: flex; gap: 5px; }
+    .task-actions button { padding: 4px 8px; border: 1px solid #ccc; background: #fff; border-radius: 4px; cursor: pointer; }
+    .task-actions button.danger { color: #dc3545; border-color: #dc3545; }
+    .edit-form { display: flex; flex-direction: column; gap: 8px; margin: 8px 0; }
+    .edit-form button[type="submit"] { background: #007bff; }
+    .edit-form button[type="button"] { background: #6c757d; color: white; }
+    .error { color: red; margin: 10px 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Список задач</h1>
+    <div class="filters">
+      <button data-filter="all" class="active">Все</button>
+      <button data-filter="active">Активные</button>
+      <button data-filter="completed">Выполненные</button>
+    </div>
+    <div class="add-form">
+      <input type="text" id="add-title" placeholder="Название задачи" required>
+      <textarea id="add-description" placeholder="Описание (необязательно)" rows="2"></textarea>
+      <button id="add-btn">Добавить</button>
+    </div>
+    <div id="error" class="error" style="display:none;"></div>
+    <ul class="task-list" id="task-list"></ul>
+  </div>
+
+  <script>
+    const API_BASE = '/api/tasks';
+    let currentFilter = 'all';
+    let editingTaskId = null;
+
+    const taskList = document.getElementById('task-list');
+    const addTitle = document.getElementById('add-title');
+    const addDescription = document.getElementById('add-description');
+    const addBtn = document.getElementById('add-btn');
+    const errorDiv = document.getElementById('error');
+    const filterBtns = document.querySelectorAll('.filters button');
+
+    function showError(msg) {
+      errorDiv.textContent = msg;
+      errorDiv.style.display = 'block';
+      setTimeout(() => { errorDiv.style.display = 'none'; }, 3000);
+    }
+
+    async function fetchTasks() {
+      try {
+        const res = await fetch(`${API_BASE}?filter=${currentFilter}`);
+        if (!res.ok) throw new Error('Ошибка загрузки задач');
+        const tasks = await res.json();
+        renderTasks(tasks);
+      } catch (err) {
+        showError(err.message);
+      }
+    }
+
+    function renderTasks(tasks) {
+      taskList.innerHTML = '';
+      tasks.forEach(task => {
+        const li = document.createElement('li');
+        li.className = 'task-item';
+        li.dataset.id = task.id;
+
+        if (editingTaskId === task.id) {
+          renderEditMode(li, task);
+        } else {
+          renderViewMode(li, task);
+        }
+        taskList.appendChild(li);
+      });
+    }
+
+    function renderViewMode(li, task) {
+      li.innerHTML = `
+        <input type="checkbox" class="task-checkbox" ${task.completed ? 'checked' : ''}>
+        <div class="task-content">
+          <div class="task-title ${task.completed ? 'completed' : ''}">${escapeHtml(task.title)}</div>
+          ${task.description ? `<div class="task-description">${escapeHtml(task.description)}</div>` : ''}
+        </div>
+        <div class="task-actions">
+          <button class="edit-btn">✎</button>
+          <button class="delete-btn danger">✕</button>
+        </div>
+      `;
+
+      li.querySelector('.task-checkbox').addEventListener('change', () => toggleTask(task.id, !task.completed));
+      li.querySelector('.edit-btn').addEventListener('click', () => startEdit(task.id));
+      li.querySelector('.delete-btn').addEventListener('click', () => deleteTask(task.id));
+    }
+
+    function renderEditMode(li, task) {
+      li.innerHTML = `
+        <div class="edit-form">
+          <input type="text" class="edit-title" value="${escapeHtml(task.title)}" required>
+          <textarea class="edit-description" rows="2">${escapeHtml(task.description || '')}</textarea>
+          <div>
+            <button type="submit" class="save-edit-btn">Сохранить</button>
+            <button type="button" class="cancel-edit-btn">Отмена</button>
+          </div>
+        </div>
+      `;
+
+      li.querySelector('.save-edit-btn').addEventListener('click', () => saveEdit(task.id));
+      li.querySelector('.cancel-edit-btn').addEventListener('click', () => cancelEdit());
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    async function addTask() {
+      const title = addTitle.value.trim();
+      if (!title) {
+        showError('Введите название задачи');
+        return;
+      }
+      try {
+        const res = await fetch(API_BASE, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title, description: addDescription.value.trim() })
+        });
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.error || 'Ошибка создания задачи');
+        }
+        addTitle.value = '';
+        addDescription.value = '';
+        fetchTasks();
+      } catch (err) {
+        showError(err.message);
+      }
+    }
+
+    async function toggleTask(id, completed) {
+      try {
+        const taskResponse = await fetch(`${API_BASE}/${id}`);
+        if (!taskResponse.ok) throw new Error('Задача не найдена');
+        const task = await taskResponse.json();
+
+        const res = await fetch(`${API_BASE}/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: task.title,
+            description: task.description,
+            completed: completed
+          })
+        });
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.error || 'Ошибка обновления');
+        }
+        fetchTasks();
+      } catch (err) {
+        showError(err.message);
+      }
+    }
+
+    function startEdit(id) {
+      editingTaskId = id;
+      fetchTasks();
+    }
+
+    function cancelEdit() {
+      editingTaskId = null;
+      fetchTasks();
+    }
+
+    async function saveEdit(id) {
+      const li = document.querySelector(`.task-item[data-id="${id}"]`);
+      const titleInput = li.querySelector('.edit-title');
+      const descInput = li.querySelector('.edit-description');
+      const title = titleInput.value.trim();
+      if (!title) {
+        showError('Название не может быть пустым');
+        return;
+      }
+      const description = descInput.value.trim();
+
+      try {
+        const taskResponse = await fetch(`${API_BASE}/${id}`);
+        if (!taskResponse.ok) throw new Error('Задача не найдена');
+        const task = await taskResponse.json();
+
+        const res = await fetch(`${API_BASE}/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title, description, completed: task.completed })
+        });
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.error || 'Ошибка сохранения');
+        }
+        editingTaskId = null;
+        fetchTasks();
+      } catch (err) {
+        showError(err.message);
+      }
+    }
+
+    async function deleteTask(id) {
+      try {
+        const res = await fetch(`${API_BASE}/${id}`, { method: 'DELETE' });
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.error || 'Ошибка удаления');
+        }
+        if (editingTaskId === id) editingTaskId = null;
+        fetchTasks();
+      } catch (err) {
+        showError(err.message);
+      }
+    }
+
+    filterBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        filterBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentFilter = btn.dataset.filter;
+        fetchTasks();
+      });
+    });
+
+    addBtn.addEventListener('click', addTask);
+    addTitle.addEventListener('keypress', (e) => { if (e.key === 'Enter') addTask(); });
+
+    fetchTasks();
+  </script>
+</body>
+</html>
