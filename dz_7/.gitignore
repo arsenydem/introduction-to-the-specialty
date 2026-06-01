@@ -7,3 +7,6 @@ sbom/*.json
 sbom/*.xml
 !sbom/.gitkeep
 reports/
+vendor/
+trivy-report.txt
+trivy-report.json

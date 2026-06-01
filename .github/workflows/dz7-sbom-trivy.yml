@@ -1,4 +1,4 @@
-# dz_7: SBOM (Syft) + уязвимости (Trivy) — через Docker, без GitHub Actions от Aqua
+# dz_7: SBOM (Syft) + уязвимости (Trivy) — через Docker
 name: dz7 SBOM & Trivy
 
 on:
@@ -51,6 +51,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Vendor dependencies for scan
+        working-directory: dz_7
+        run: pip install -r requirements.txt -t vendor --no-cache-dir
+
       - name: Trivy scan (table)
         run: |
           docker run --rm \
@@ -77,6 +85,10 @@ jobs:
             --format json \
             --exit-code 0 \
             --output /workspace/dz_7/trivy-report.json
+
+      - name: Print Trivy table
+        if: failure()
+        run: cat dz_7/trivy-report.txt || true
 
       - name: Upload Trivy reports
         if: always()

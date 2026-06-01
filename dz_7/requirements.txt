@@ -1,8 +1,10 @@
-# Production-зависимости (после устранения уязвимостей — см. docs/vulnerability-report.md)
-fastapi==0.115.6
-uvicorn[standard]==0.32.1
+# Production-зависимости (обновлено под Trivy — см. docs/vulnerability-report.md)
+fastapi==0.115.12
+starlette==0.46.2
+uvicorn[standard]==0.34.2
 requests==2.32.3
-urllib3==2.2.3
-certifi==2024.12.14
+urllib3==2.4.0
+certifi==2025.4.26
 idna==3.10
-charset-normalizer==3.4.1
+charset-normalizer==3.4.2
+pydantic==2.11.4
