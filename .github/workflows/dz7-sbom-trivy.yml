@@ -1,0 +1,73 @@
+# dz_7: SBOM + Trivy (отчёт без падения CI)
+name: dz7 SBOM & Trivy
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "dz_7/**"
+      - ".github/workflows/dz7-sbom-trivy.yml"
+  push:
+    branches: [main]
+    paths:
+      - "dz_7/**"
+      - ".github/workflows/dz7-sbom-trivy.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  security-report:
+    name: SBOM + Trivy report
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: dz_7
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: SBOM (Syft)
+        run: |
+          mkdir -p sbom reports
+          docker run --rm \
+            -v "${{ github.workspace }}:/workspace" \
+            anchore/syft:latest \
+            scan "dir:/workspace/dz_7" \
+            -o cyclonedx-json > sbom/sbom.cyclonedx.json
+
+      - name: Trivy report
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}:/workspace" \
+            aquasec/trivy:latest \
+            fs /workspace/dz_7 \
+            --scanners vuln \
+            --format table \
+            --exit-code 0 \
+            --output /workspace/dz_7/reports/trivy-table.txt
+
+      - run: cat reports/trivy-table.txt || true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dz7-security-reports
+          path: |
+            dz_7/sbom/sbom.cyclonedx.json
+            dz_7/reports/trivy-table.txt
+
+  test:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    needs: security-report
+    defaults:
+      run:
+        working-directory: dz_7
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements-dev.txt
+      - run: pytest -q

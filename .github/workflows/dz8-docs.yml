@@ -1,0 +1,38 @@
+# dz_8: финальный отчёт — только проверка документации (без Trivy)
+name: dz8 Docs
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "dz_8/**"
+      - ".github/workflows/dz8-docs.yml"
+  push:
+    branches: [main]
+    paths:
+      - "dz_8/**"
+      - ".github/workflows/dz8-docs.yml"
+
+jobs:
+  docs:
+    name: Check report files
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Required documents exist
+        run: |
+          test -f dz_8/README.md
+          test -f dz_8/docs/PROJECT_REPORT.md
+          test -f dz_8/docs/ONBOARDING.md
+          test -f dz_8/docs/ADR-001-tech-stack.md
+          echo "All dz_8 docs present."
+
+      - name: Report has main sections
+        run: |
+          grep -q "Архитектура" dz_8/docs/PROJECT_REPORT.md
+          grep -q "Тестирование" dz_8/docs/PROJECT_REPORT.md
+          grep -q "Безопасность" dz_8/docs/PROJECT_REPORT.md
+          grep -q "Выводы" dz_8/docs/PROJECT_REPORT.md
+          echo "PROJECT_REPORT.md structure OK."
