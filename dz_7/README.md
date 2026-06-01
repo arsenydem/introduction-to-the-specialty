@@ -1,62 +1,25 @@
-# ДЗ 7 — SBOM и сканирование зависимостей
+# ДЗ 7 — SBOM и зависимости (на 8/10)
 
-Анализ **сторонних библиотек**: состав (SBOM) и известные уязвимости (CVE).
+## Что сдаём
 
-## Инструменты
+| Критерий | Где |
+|----------|-----|
+| SBOM | CI → артефакт `dz7-security-reports` → `sbom.cyclonedx.json` |
+| Отчёт по CVE | тот же артефакт → `trivy-table.txt` + [docs/vulnerability-report.md](docs/vulnerability-report.md) |
+| CI | [.github/workflows/dz7-sbom-trivy.yml](../.github/workflows/dz7-sbom-trivy.yml) — **зелёный** |
 
-| Инструмент | Назначение |
-|------------|------------|
-| [Syft](https://github.com/anchore/syft) | SBOM (CycloneDX / SPDX) |
-| [Trivy](https://github.com/aquasecurity/trivy) | Поиск CVE в зависимостях |
+Разбор уязвимостей (было / стало / риск) — в **vulnerability-report.md**, не обязательно ломать CI из‑за каждого CVE.
 
-Установка: см. официальные инструкции или `choco install syft trivy` (Windows).
-
-## Быстрый старт
+## Локально (по желанию)
 
 ```powershell
 cd dz_7
 pip install -r requirements-dev.txt
-
-# Скан (нужны syft и trivy в PATH)
-.\scripts\scan-deps.ps1
+pytest -q
 ```
 
-Результаты:
-
-- `sbom/sbom.cyclonedx.json` — SBOM  
-- `reports/trivy-table.txt` — таблица уязвимостей  
-
-## CI
-
-Workflow [dz7-sbom-trivy.yml](../.github/workflows/dz7-sbom-trivy.yml):
-
-1. **SBOM** — Syft, артефакт в Actions  
-2. **Trivy** — fail при HIGH/CRITICAL с доступным фиксом  
-3. **pytest** — smoke-тест приложения  
-
-## Разбор уязвимостей (8–10/10)
-
-Подробный отчёт: [docs/vulnerability-report.md](docs/vulnerability-report.md)
-
-- что было небезопасно;  
-- какие CVE/риски;  
-- **что обновлено** в `requirements.txt`.
-
-## Критерии
-
-| Баллы | Реализация |
-|-------|------------|
-| 6/10 | SBOM + отчёт Trivy (локально или артефакт CI) |
-| 8/10 | [vulnerability-report.md](docs/vulnerability-report.md) |
-| 10/10 | обновлённые версии в `requirements.txt` + CI |
+Syft/Trivy — те же команды, что в workflow (нужен Docker).
 
 ## Сдача
 
-```bash
-git checkout -b feature/dz7-sbom-trivy
-git add dz_7 .github/workflows/dz7-sbom-trivy.yml
-git commit -m "dz_7: Syft SBOM and Trivy dependency scanning"
-git push -u origin feature/dz7-sbom-trivy
-```
-
-Ссылка на PR — в таблицу курса.
+PR с `dz_7/` + workflow → ссылка в таблицу курса.
