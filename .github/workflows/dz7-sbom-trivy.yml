@@ -1,4 +1,4 @@
-# dz_7: SBOM (Syft) + сканирование уязвимостей (Trivy)
+# dz_7: SBOM (Syft) + сканирование уязвимостей (Trivy CLI)
 name: dz7 SBOM & Trivy
 
 on:
@@ -24,9 +24,6 @@ jobs:
   sbom:
     name: SBOM (Syft)
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: dz_7
 
     steps:
       - uses: actions/checkout@v4
@@ -51,39 +48,44 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Scan dependencies
-        uses: aquasecurity/trivy-action@0.28.0
-        with:
-          scan-type: fs
-          scan-ref: dz_7
-          trivy-config: dz_7/.trivy.yaml
-          format: table
-          output: trivy-report.txt
-          severity: HIGH,CRITICAL
-          ignore-unfixed: true
-          exit-code: "1"
+      - name: Install Trivy CLI
+        uses: aquasecurity/setup-trivy@v0.2.4
 
-      - name: JSON report
-        uses: aquasecurity/trivy-action@0.28.0
+      - name: Scan dependencies (table)
+        run: |
+          trivy fs . \
+            --config .trivy.yaml \
+            --severity HIGH,CRITICAL \
+            --ignore-unfixed \
+            --format table \
+            --exit-code 1 \
+            --output trivy-report.txt
+
+      - name: Scan dependencies (JSON)
         if: always()
-        with:
-          scan-type: fs
-          scan-ref: dz_7
-          trivy-config: dz_7/.trivy.yaml
-          format: json
-          output: trivy-report.json
-          severity: HIGH,CRITICAL,MEDIUM,LOW
-          ignore-unfixed: true
-          exit-code: "0"
+        run: |
+          trivy fs . \
+            --config .trivy.yaml \
+            --severity HIGH,CRITICAL,MEDIUM,LOW \
+            --ignore-unfixed \
+            --format json \
+            --exit-code 0 \
+            --output trivy-report.json
 
       - name: Upload Trivy reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: dz7-trivy-reports
-          path: |
-            dz_7/trivy-report.txt
-            dz_7/trivy-report.json
+          path: dz_7/trivy-report.txt
+          if-no-files-found: ignore
+
+      - name: Upload Trivy JSON
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dz7-trivy-json
+          path: dz_7/trivy-report.json
           if-no-files-found: ignore
 
   test:
