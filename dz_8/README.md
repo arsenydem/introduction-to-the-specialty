@@ -23,8 +23,9 @@
 
 ## CI для dz_8
 
-Только проверка документов: [`.github/workflows/dz8-docs.yml`](../.github/workflows/dz8-docs.yml)  
-**Без Trivy** — отчёт сдаётся как Markdown.
+Только **dz8 Docs**: [`.github/workflows/dz8-docs.yml`](../.github/workflows/dz8-docs.yml)
+
+> Если в PR ещё видите **dz7 SBOM & Trivy** — это потому что в `main` пока нет `dz_7/`, и GitHub считает всю папку новой. Для сдачи **dz_8** смотрите зелёный **dz8 Docs**.
 
 ## Сдача
 
