@@ -1,0 +1,8 @@
+# Конфигурация Trivy для dz_7
+scan:
+  scanners:
+    - vuln
+  severity:
+    - HIGH
+    - CRITICAL
+  ignore-unfixed: true
