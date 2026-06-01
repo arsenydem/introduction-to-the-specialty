@@ -28,7 +28,7 @@ pip install -r requirements-dev.txt
 
 ## CI
 
-Workflow [dz7-sbom-trivy.yml](../.github/workflows/dz7-sbom-trivy.yml):
+Workflow [dz7-sbom-trivy.yml](../.github/workflows/dz7-sbom-trivy.yml) (Trivy: `aquasecurity/trivy-action@v0.36.0`):
 
 1. **SBOM** — Syft, артефакт в Actions  
 2. **Trivy** — fail при HIGH/CRITICAL с доступным фиксом  
