@@ -1,0 +1,3 @@
+from dz5.greet import greet
+
+__all__ = ["greet"]
