@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>dz5 Tasks</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 480px; margin: 2rem auto; padding: 0 1rem; }
+    h1 { font-size: 1.25rem; }
+    form { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+    input { flex: 1; padding: 0.5rem; }
+    button { padding: 0.5rem 1rem; cursor: pointer; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.5rem 0; border-bottom: 1px solid #eee; }
+    .done { text-decoration: line-through; color: #888; }
+    #error { color: #c00; min-height: 1.2em; }
+  </style>
+</head>
+<body>
+  <h1>Задачи (dz_5)</h1>
+  <form id="add-form">
+    <input id="title" type="text" placeholder="Название" required>
+    <button type="submit">Добавить</button>
+  </form>
+  <p id="error"></p>
+  <ul id="list"></ul>
+  <script>
+    const list = document.getElementById('list');
+    const form = document.getElementById('add-form');
+    const titleInput = document.getElementById('title');
+    const errorEl = document.getElementById('error');
+
+    async function loadTasks() {
+      const res = await fetch('/api/tasks');
+      const tasks = await res.json();
+      list.innerHTML = '';
+      tasks.forEach(t => {
+        const li = document.createElement('li');
+        li.textContent = t.title;
+        li.dataset.id = t.id;
+        if (t.completed) li.classList.add('done');
+        list.appendChild(li);
+      });
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorEl.textContent = '';
+      const title = titleInput.value.trim();
+      const res = await fetch('/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        errorEl.textContent = data.detail || 'Ошибка';
+        return;
+      }
+      titleInput.value = '';
+      await loadTasks();
+    });
+
+    loadTasks();
+  </script>
+</body>
+</html>
