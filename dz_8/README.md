@@ -21,10 +21,15 @@
 | [docs/ONBOARDING.md](docs/ONBOARDING.md) | Быстрый старт для нового разработчика |
 | [docs/ADR-001-tech-stack.md](docs/ADR-001-tech-stack.md) | Ключевые технические решения |
 
+## CI для dz_8
+
+Только проверка документов: [`.github/workflows/dz8-docs.yml`](../.github/workflows/dz8-docs.yml)  
+**Без Trivy** — отчёт сдаётся как Markdown.
+
 ## Сдача
 
-1. Ветка `feature/dz8-report` → коммит папки `dz_8/`.
-2. Pull Request в `main`.
-3. Ссылка на PR — в таблицу курса (как в dz_3–dz_7).
+1. Ветка `feature/dz8-report` → `git add dz_8 .github/workflows/dz8-docs.yml`
+2. Pull Request в `main`
+3. Ссылка на PR — в таблицу курса
 
-Проверяющему достаточно открыть `dz_8/docs/PROJECT_REPORT.md` в GitHub.
+Проверяющему: `dz_8/docs/PROJECT_REPORT.md` + зелёный workflow **dz8 Docs**.
